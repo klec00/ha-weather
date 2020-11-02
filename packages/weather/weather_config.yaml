@@ -1,0 +1,543 @@
+
+smartweather:
+  station_id: !secret smart_weather_station_id
+  api_key: !secret smart_weather_api_key
+
+#binary_sensor:
+#  - platform: smartweather
+#    monitored_conditions:
+#      - raining
+#      - freezing
+#      - lightning
+
+#===================================================
+#  Weather forecast from multiple platforms
+# - SmartWeather (DarkSky)
+# - SmartWeather (sensors)
+# - Yr
+# - SMHI (via Integration)
+# - Weatherbit (via Integration)
+# - OpenWeatherMap
+# - Trafikverket (road condition readings)
+#===================================================
+
+#---------------------------------------------------
+# SmartWeather (DarkSky)
+#---------------------------------------------------
+weather:
+  - platform: smartweather
+    api_key: !secret darksky_api_key
+    mode: daily
+
+sensor:
+#---------------------------------------------------
+# Yr - now replaced with weather_data 
+# https://github.com/Danielhiversen/home_assistant_weather_data
+#---------------------------------------------------
+  - platform: weather_data
+    monitored_conditions:
+      - temperature
+      - symbol
+      - precipitation
+      - windSpeed
+      - pressure
+      - windDirection
+      - humidity
+#      - fog
+#      - cloudiness
+#      - lowClouds
+#      - mediumClouds
+#      - highClouds
+      - dewpointTemperature
+
+#---------------------------------------------------
+# OpenWeatherMap
+#---------------------------------------------------
+  - platform: openweathermap
+    api_key: !secret open_weather_map_api
+    monitored_conditions:
+      - weather
+      - temperature
+      - wind_speed
+      - wind_bearing
+      - humidity
+      - pressure
+#      - clouds
+      - rain
+
+#---------------------------------------------------
+# SmartWeather (sensors)
+#---------------------------------------------------
+  - platform: smartweather
+#    wind_unit: kmh
+    monitored_conditions:
+      - temperature
+#      - feels_like_temperature
+#      - heat_index
+#      - wind_chill
+      - dewpoint
+      - wind_speed
+#      - wind_gust
+#      - wind_lull
+#      - wind_bearing
+#      - wind_direction
+      - precipitation
+      - precipitation_rate
+      - precipitation_last_1hr
+      - precipitation_yesterday
+#      - precip_minutes_local_day
+#      - precip_minutes_local_yesterday
+      - humidity
+      - pressure
+#      - uv
+#      - solar_radiation
+#      - illuminance
+#      - lightning_count
+
+#---------------------------------------------------
+# Trafikverket
+#---------------------------------------------------
+  - platform: trafikverket_weatherstation
+    name: Trafikverket Tullinge
+    api_key: !secret trafikverket_api_key
+    station: Tullinge
+    monitored_conditions:
+      - air_temp
+      - road_temp
+      - humidity
+      - precipitation
+      # - wind_direction
+      # - wind_direction_text
+      - wind_speed
+
+  - platform: trafikverket_weatherstation
+    name: Trafikverket Västberga
+    api_key: !secret trafikverket_api_key
+    station: Essingeleden, Västb.
+    monitored_conditions:
+      - air_temp
+      - road_temp
+      - humidity
+      - precipitation
+      # - wind_direction
+      # - wind_direction_text
+      - wind_speed
+
+  - platform: trafikverket_weatherstation
+    name: Trafikverket Solna
+    api_key: !secret trafikverket_api_key
+    station: Solna
+    monitored_conditions:
+      # - air_temp
+      - road_temp
+      # - humidity
+      # - precipitation
+      # - wind_direction
+      # - wind_direction_text
+      # - wind_speed
+  
+#======================
+#= TEMPERATURE
+#======================
+  - platform: rest
+    resource: "https://opendata-download-metobs.smhi.se/api/version/latest/parameter/2/station/97100/period/latest-day/data.json"
+    value_template: '{{ value_json["value"][0]["value"] }}'
+    name: 'SMHI_avgtemp_tullinge_yesterday'
+    unit_of_measurement: '°C'
+    scan_interval: 7200
+
+  - platform: rest
+    resource: "https://opendata-download-metobs.smhi.se/api/version/latest/parameter/2/station/98210/period/latest-day/data.json"
+    value_template: '{{ value_json["value"][0]["value"] }}'
+    name: 'SMHI_avgtemp_stockholm_yesterday'
+    unit_of_measurement: '°C'
+    scan_interval: 7200
+
+  - platform: template
+    sensors:
+#-#-#-#-
+      smhi_home_avg_temp_forecast:
+        value_template: >
+          {{ (float(states.weather.smhi_home.attributes['forecast'][0]['temperature']) + 
+              float(states.weather.smhi_home.attributes['forecast'][0]['templow'])) / 2 }}
+        friendly_name: 'Medeltemperatur idag (prognos)'
+        unit_of_measurement: °C
+
+      smhi_home_temp:
+        value_template: "{{ states.weather.smhi_home.attributes['temperature'] }}"
+        friendly_name: 'Temperatur hemma'
+        unit_of_measurement: °C
+
+      smhi_home_temp_min:
+        value_template: >
+          {{ float(state_attr('weather.smhi_home','forecast')[0]['templow']) }}
+        friendly_name: 'SMHI min temp today'
+        unit_of_measurement: °C
+
+      smhi_home_temp_max:
+        value_template: >
+          {{ float(state_attr('weather.smhi_home','forecast')[0]['temperature']) }}
+        friendly_name: 'SMHI max temp today'
+        unit_of_measurement: °C
+
+      smartweather_temp_min:
+        value_template: >
+          {{ float(state_attr('weather.smartweather','forecast')[0]['templow']) }}
+        friendly_name: 'Smartweather max temp today'
+        unit_of_measurement: °C
+
+      smartweather_temp_max:
+        value_template: >
+          {{ float(state_attr('weather.smartweather','forecast')[0]['temperature']) }}
+        friendly_name: 'Smartweather max temp today'
+        unit_of_measurement: °C
+
+      weatherbit_temp_min:
+        value_template: >
+          {{ float(state_attr('weather.weatherbit_huddinge','forecast')[0]['templow']) }}
+        friendly_name: 'Weatherbit max temp today'
+        unit_of_measurement: °C
+
+      weatherbit_temp_max:
+        value_template: >
+          {{ float(state_attr('weather.weatherbit_huddinge','forecast')[0]['temperature']) }}
+        friendly_name: 'Weatherbit max temp today'
+        unit_of_measurement: °C
+        
+  #=== Max Temp Today
+  - platform: min_max
+    type: max
+    name: calculated_max_temp_now
+    entity_ids:
+#        - sensor.smartweather_temperature
+      - sensor.smhi_home_temp
+
+  #=== Average Temp Yesterday
+  - platform: min_max
+    type: mean
+    name: calculated_average_temp_yesterday
+    entity_ids:
+      - sensor.smhi_avgtemp_stockholm_yesterday
+      - sensor.smhi_avgtemp_tullinge_yesterday
+  
+  #=== Temperature sensor for Smart Irrigation
+  - platform: min_max
+    type: mean
+    name: calculated_temperature
+    entity_ids:
+#      - sensor.smartweather_temperature
+      - sensor.yr_temperature
+      - sensor.owm_temperature
+      - sensor.trafikverket_tullinge_air_temperature
+      - sensor.trafikverket_vastberga_air_temperature
+      - sensor.smhi_home_temp
+      - sensor.weatherbit_temperature
+
+  #=== Temperature_min sensor for Smart Irrigation
+  - platform: min_max
+    type: min
+    name: calculated_temperature_min
+    entity_ids:
+      - sensor.smhi_home_temp_min
+      - sensor.smartweather_temp_min
+      - sensor.weatherbit_temp_min
+
+  #=== Temperature_max sensor for Smart Irrigation
+  - platform: min_max
+    type: max
+    name: calculated_temperature_max
+    entity_ids:
+      - sensor.smhi_home_temp_max
+      - sensor.smartweather_temp_max
+      - sensor.weatherbit_temp_max
+
+  #=== indoor temperature
+  - platform: min_max
+    type: mean
+    name: calculated_temperature_indoor
+    entity_ids:
+      - sensor.kok_temperature
+      - sensor.hue_motion_sensor_1_temperature
+      - sensor.hue_motion_sensor_1_temperature_2
+      - sensor.hue_motion_sensor_1_temperature_3
+      - sensor.kattvind_temperatur
+    # - sensor.temperatur_garage
+    # - sensor.temperatur_garage_bmp085
+#===========================
+#= RAIN
+#===========================
+#---------------------------
+# Rain - Yesterdays actuals
+#---------------------------
+  - platform: rest
+    resource: "https://opendata-download-metobs.smhi.se/api/version/latest/parameter/5/station/97100/period/latest-day/data.json"
+    value_template: '{{ value_json["value"][0]["value"] }}'
+    json_attributes:
+      - value
+      - station
+    name: 'SMHI_rainfall_tullinge_actual_raw'
+    unit_of_measurement: 'mm'
+    scan_interval: 600
+
+  - platform: rest
+    resource: "https://opendata-download-metobs.smhi.se/api/version/latest/parameter/5/station/98210/period/latest-day/data.json"
+    value_template: '{{ value_json["value"][0]["value"] }}'
+    json_attributes:
+      - value
+      - station
+    name: 'SMHI_rainfall_stockholm_actual_raw'
+    unit_of_measurement: 'mm'
+    scan_interval: 600
+
+  - platform: template
+    sensors:
+      smhi_tullinge_rain_yesterday_actual:
+        value_template: '{{ states("sensor.SMHI_rainfall_tullinge_actual_raw") }}'
+        attribute_templates:
+          from: '{{ state_attr("sensor.SMHI_rainfall_tullinge_actual_raw", "value")[0]["from"] | multiply(0.001) | round(0) | timestamp_utc }}'
+          to: '{{ state_attr("sensor.SMHI_rainfall_tullinge_actual_raw", "value")[0]["to"] | multiply(0.001) | round(0) | timestamp_utc }}'
+          ref: '{{ state_attr("sensor.SMHI_rainfall_tullinge_actual_raw", "value")[0]["ref"] }}'
+
+      smhi_stockholm_rain_yesterday_actual:
+        value_template: '{{ states("sensor.SMHI_rainfall_stockholm_actual_raw") }}'
+        attribute_templates:
+          from: '{{ state_attr("sensor.SMHI_rainfall_stockholm_actual_raw", "value")[0]["from"] | multiply(0.001) | round(0) | timestamp_utc }}'
+          to: '{{ state_attr("sensor.SMHI_rainfall_stockholm_actual_raw", "value")[0]["to"] | multiply(0.001) | round(0) | timestamp_utc }}'
+          ref: '{{ state_attr("sensor.SMHI_rainfall_stockholm_actual_raw", "value")[0]["ref"] }}'
+
+  #=== Average Rain Yesterday
+  - platform: min_max
+    type: mean
+    name: calculated_average_rain_yesterday
+    entity_ids:
+#      - sensor.smartweather_rain_yesterday
+      - sensor.smhi_tullinge_rain_yesterday_actual
+      - sensor.smhi_stockholm_rain_yesterday_actual
+
+#---------------------------
+# Rain - Today estimate
+#---------------------------
+  - platform: template
+    sensors:
+      smart_irrigation_h_precipitation:
+        value_template: >
+          {{ state_attr('sensor.smart_irrigation_green_hourly_adjusted_run_time', 'precipitation') }} 
+        friendly_name: 'Nederbörd via Smart Irrigation'
+        unit_of_measurement: 'mm'
+
+  #=== Rain sensor for Smart Irrigation
+  - platform: min_max
+    type: mean
+    name: calculated_rain
+    entity_ids:
+      - sensor.smhi_home_rain_forecast_today
+      - sensor.weatherbit_rain_forecast_today
+    #  - sensor.smartweather_rain_forecast_today
+
+#---------------------------
+# Rain - Today forecast
+#---------------------------
+  - platform: template
+    sensors:
+      weatherbit_rain_forecast_today:
+        value_template: "{{ state_attr('sensor.weatherbit_forecast_day_1','precipitation') }}"
+        friendly_name: 'Weatherbit regnprognos idag'
+        attribute_templates:
+            datetime: "{{ state_attr('sensor.weatherbit_forecast_day_1','datetime') }}"
+        unit_of_measurement: mm
+
+      weatherbit_rain_forecast_tomorrow:
+        value_template: "{{ state_attr('sensor.weatherbit_forecast_day_2','precipitation') }}"
+        friendly_name: 'Weatherbit regnprognos imorgon'
+        attribute_templates:
+            datetime: "{{ state_attr('sensor.weatherbit_forecast_day_2','datetime') }}"
+        unit_of_measurement: mm
+
+      smhi_home_rain_forecast_today:
+        value_template: >
+          {{ state_attr('weather.smhi_home', 'forecast')[0]['precipitation'] }} 
+        friendly_name: 'SMHI regnprognos idag'
+        attribute_templates:
+          datetime: "{{ state_attr('weather.smhi_home', 'forecast')[0]['datetime'] }}"
+        unit_of_measurement: 'mm'
+
+      smhi_home_rain_forecast_tomorrow:
+        value_template: >
+          {{ state_attr('weather.smhi_home', 'forecast')[1]['precipitation'] }} 
+        friendly_name: 'SMHI regnprognos imorgon'
+        attribute_templates:
+          datetime: "{{ state_attr('weather.smhi_home', 'forecast')[1]['datetime'] }}"
+        unit_of_measurement: 'mm'
+
+      smartweather_rain_forecast_today:
+        value_template: >
+          {{ state_attr('weather.smartweather','forecast')[0]['precipitation']}}
+        friendly_name: 'SmartWeather Regnprognos idag'
+        attribute_templates:
+          datetime: "{{ state_attr('weather.smartweather','forecast')[0]['datetime']}}"
+        unit_of_measurement: 'mm'
+
+      smartweather_rain_forecast_tomorrow:
+        value_template: >
+          {{ state_attr('weather.smartweather','forecast')[1]['precipitation']}}
+        friendly_name: 'SmartWeather Regnprognos imorgon'
+        attribute_templates:
+          datetime: "{{ state_attr('weather.smartweather','forecast')[1]['datetime']}}"
+        unit_of_measurement: 'mm'
+
+#=== Estimated max rain today(forecast)
+  - platform: min_max
+    type: max
+    name: calculated_max_rain_today
+    entity_ids:
+      - sensor.smartweather_rain_today
+      - sensor.smhi_home_rain_forecast    
+
+#===========================
+#= HUMIDITY
+#===========================
+  - platform: template
+    sensors:
+      smhi_home_humidity:
+        value_template: "{{ states.weather.smhi_home.attributes['humidity'] }}"
+        friendly_name: 'Luftfuktighet hemma'
+        unit_of_measurement: '%'
+        
+  #=== Humidity sensor for Smart Irrigation
+  - platform: min_max
+    type: mean
+    name: calculated_humidity
+    entity_ids:
+#      - sensor.smartweather_humidity
+      - sensor.yr_humidity
+      - sensor.owm_humidity
+      - sensor.trafikverket_tullinge_humidity
+      - sensor.trafikverket_vastberga_humidity
+      - sensor.smhi_home_humidity  
+      - sensor.weatherbit_humidity
+
+#===========================
+#= PRESSURE
+#===========================
+  - platform: template
+    sensors:
+      smhi_home_pressure:
+        value_template: "{{ states.weather.smhi_home.attributes['pressure'] }}"
+        friendly_name: 'Lufttryck hemma'
+        unit_of_measurement: 'hPa'
+        device_class: pressure
+
+      owm_pressure_hpa:
+        value_template: >
+          {{ float(states('sensor.owm_pressure')) }}
+        friendly_name: 'OWM Pressure in hPa'
+        unit_of_measurement: 'hPa'
+        device_class: pressure
+
+  #=== Pressure sensor for Smart Irrigation
+  - platform: min_max
+    type: mean
+    name: calculated_pressure
+    entity_ids:
+#      - sensor.smartweather_pressure
+      - sensor.yr_pressure
+      - sensor.owm_pressure_hPa
+      - sensor.smhi_home_pressure
+      - sensor.kattvind_lufttryck
+      - sensor.weatherbit_pressure
+
+#===========================
+#= WIND SPEED
+#===========================
+  - platform: template
+    sensors:
+      smhi_home_wind_speed:
+        value_template: "{{ float(states.weather.smhi_home.attributes['wind_speed'])  }}"
+        friendly_name: 'Vind smhi hemma'
+        unit_of_measurement: 'km/h'
+
+      yr_wind_speed_kmh:
+        value_template: "{{ float(states('sensor.yr_wind_speed')) * 3.6 }}"
+        friendly_name: 'Vind yr i km/h'
+        unit_of_measurement: 'km/h'        
+
+      owm_wind_speed_kmh:
+        value_template: "{{ float(states('sensor.owm_wind_speed')) * 3.6 }}"
+        friendly_name: 'Vind OWM i km/h'
+        unit_of_measurement: 'km/h'      
+      
+      calculated_wind_speed_mps:
+        value_template: "{{ float(states('sensor.calculated_wind_speed')) / 3.6 | round }}"
+        friendly_name: 'Vind'
+        unit_of_measurement: 'm/s'
+
+  #=== Wind speed sensor for Smart Irrigation
+  - platform: min_max
+    type: mean
+    name: calculated_wind_speed
+    entity_ids:
+#      - sensor.smartweather_wind_speed
+      - sensor.yr_wind_speed_kmh
+      - sensor.owm_wind_speed_kmh
+#      - sensor.trafikverket_tullinge_wind_speed
+#      - sensor.trafikverket_vastberga_wind_speed
+      - sensor.smhi_home_wind_speed
+      - sensor.weatherbit_wind_speed  
+
+#===========================
+#= DEW POINT
+#===========================
+
+#=== Dew point sensor for Smart Irrigation
+  - platform: min_max
+    type: mean
+    name: calculated_dewpoint
+    entity_ids:
+#      - sensor.smartweather_dewpoint
+      - sensor.yr_dewpoint_temperature
+      - sensor.weatherbit_dewpoint
+  
+
+
+#===========================
+#= EVAPOTRANSPIRATION
+#===========================
+  - platform: template
+    sensors:  
+
+      smart_irrigation_base_hourly_evapotranspiration:
+        value_template: >
+          {{ state_attr('sensor.smart_irrigation_base_hourly_adjusted_run_time', 'evapotranspiration') }} 
+        friendly_name: 'Smart Irrigation avdunstning (h)'
+        unit_of_measurement: 'mm'
+
+      smart_irrigation_base_hourly_net_precipitation:
+        value_template: >
+          {{ state_attr('sensor.smart_irrigation_base_hourly_adjusted_run_time', 'netto_precipitation') }} 
+        friendly_name: 'Netto avdunstning via Smart Irrigation'
+        unit_of_measurement: 'mm'
+ 
+      smart_irrigation_base_water_bucket:
+        value_template: >
+          {{ state_attr('sensor.smart_irrigation_base_daily_adjusted_run_time', 'bucket') }} 
+        friendly_name: 'Daglig Bucket via Smart Irrigation'
+        unit_of_measurement: 'mm'
+
+
+input_number:
+  smart_irrigation_eod_estimated_rain:
+    name: Daily estimated rain from SmartIrrigation
+    min: -100
+    max: 200
+    step: 1
+    icon: mdi:water
+    unit_of_measurement: 'mm'
+
+  observed_rain_yesterday:
+    name: Observed rain yesterday
+    min: -100
+    max: 200
+    step: 1
+    icon: mdi:water
+    unit_of_measurement: 'mm'
+
