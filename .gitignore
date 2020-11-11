@@ -1,6 +1,7 @@
 # Example .gitignore file for your config dir.
 # A * ensures that everything will be ignored.
 *
+.DS_Store
 
 # You can whitelist files/folders with !, these will not be ignored.
 !*.yaml
@@ -14,7 +15,6 @@
 !packages/
 !packages/**
 !esphome
-!*.png
 !image/
 !image/**
 
@@ -31,4 +31,5 @@ ip_bans.yaml
 secrets.yaml
 known_devices.yaml
 .*.yaml
+
 
