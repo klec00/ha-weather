@@ -1,6 +1,6 @@
 # Weather setup in Home Assistant
 
-[![ha_badge](https://img.shields.io/badge/HA_version-0.116.4-green.svg)](https://home-assistant.io)
+[![ha_badge](https://img.shields.io/badge/HA_version-0.118.5-green.svg)](https://home-assistant.io)
 
 [![Buy me a coffee][buymeacoffee-shield]][buymeacoffee]
 

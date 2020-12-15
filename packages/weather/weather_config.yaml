@@ -227,7 +227,7 @@ sensor:
     entity_ids:
 #      - sensor.smartweather_temperature
       - sensor.yr_temperature
-      - sensor.owm_temperature
+      - sensor.openweathermap_temperature
       - sensor.trafikverket_tullinge_air_temperature
       - sensor.trafikverket_vastberga_air_temperature
       - sensor.smhi_home_temp
@@ -410,7 +410,7 @@ sensor:
     entity_ids:
 #      - sensor.smartweather_humidity
       - sensor.yr_humidity
-      - sensor.owm_humidity
+      - sensor.openweathermap_humidity
       - sensor.trafikverket_tullinge_humidity
       - sensor.trafikverket_vastberga_humidity
       - sensor.smhi_home_humidity  
@@ -427,9 +427,9 @@ sensor:
         unit_of_measurement: 'hPa'
         device_class: pressure
 
-      owm_pressure_hpa:
+      openweathermap_pressure_hpa:
         value_template: >
-          {{ float(states('sensor.owm_pressure')) }}
+          {{ float(states('sensor.openweathermap_pressure')) }}
         friendly_name: 'OWM Pressure in hPa'
         unit_of_measurement: 'hPa'
         device_class: pressure
@@ -441,7 +441,7 @@ sensor:
     entity_ids:
 #      - sensor.smartweather_pressure
       - sensor.yr_pressure
-      - sensor.owm_pressure_hPa
+      - sensor.openweathermap_pressure_hPa
       - sensor.smhi_home_pressure
       - sensor.kattvind_lufttryck
       - sensor.weatherbit_pressure
@@ -461,8 +461,13 @@ sensor:
         friendly_name: 'Vind yr i km/h'
         unit_of_measurement: 'km/h'        
 
-      owm_wind_speed_kmh:
-        value_template: "{{ float(states('sensor.owm_wind_speed')) * 3.6 }}"
+      openweathermap_wind_speed_kmh:
+        value_template: >
+          {% if states('sensor.openweathermap_wind_speed') != 'unknown' %}
+            {{ float(states('sensor.openweathermap_wind_speed')) * 3.6 }}
+          {% else %}
+            0
+          {% endif %}
         friendly_name: 'Vind OWM i km/h'
         unit_of_measurement: 'km/h'      
       
@@ -478,7 +483,7 @@ sensor:
     entity_ids:
 #      - sensor.smartweather_wind_speed
       - sensor.yr_wind_speed_kmh
-      - sensor.owm_wind_speed_kmh
+      - sensor.openweathermap_wind_speed_kmh
 #      - sensor.trafikverket_tullinge_wind_speed
 #      - sensor.trafikverket_vastberga_wind_speed
       - sensor.smhi_home_wind_speed
